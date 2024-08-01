@@ -7,14 +7,34 @@ const zts = @import("zts");
 const Allocator = std.mem.Allocator;
 
 //------------------------------------------------------------------------------
-// Init and deinit
+// values
 const Self = @This();
+const tmpl = @embedFile("html/layouts/index.html");
+
+//------------------------------------------------------------------------------
+// vars
+var auth_url: []u8 = undefined;
+var client_id: []u8 = undefined;
+var client_secret: []u8 = undefined;
+var redirect_uri: []u8 = undefined;
+var scope: []u8 = undefined;
 
 allocator: Allocator = undefined,
 
 pub fn init(allocator: Allocator) !Self {
+    const maybe_auth_url = std.posix.getenv("AUTH_URL").?;
+    const maybe_client_id = std.posix.getenv("CLIENT_ID").?;
+    const maybe_client_secret = std.posix.getenv("CLIENT_SECRET").?;
+    const maybe_redirect_uri = std.posix.getenv("REDIRECT_URI").?;
+    const maybe_scope = std.posix.getenv("SCOPE").?;
+
     return .{
         .allocator = allocator,
+        .auth_url = maybe_auth_url,
+        .client_id = maybe_client_id,
+        .client_secret = maybe_client_secret,
+        .redirect_uri = maybe_redirect_uri,
+        .scope = maybe_scope,
     };
 }
 
@@ -68,15 +88,27 @@ pub fn fileServer(self: *Self, req: *httpz.Request, res: *httpz.Response) !void 
 
 pub fn routes(self: *Self, router: anytype) void {
     _ = self;
+    const htmx = .{ .dispatcher = Self.pageDispatcher };
 
     router.get("/", Self.index);
+    router.getC("/public", Self.public, htmx);
+    router.getC("/protected", Self.protected, htmx);
 
     // router.get("/login", Auth.loginHandler);
 }
 
+fn pageDispatcher(self: *Self, action: httpz.Action(*Self), req: *httpz.Request, res: *httpz.Response) !void {
+    const t1 = std.time.microTimestamp();
+    _ = t1; // autofix
+
+    try self.fullpage(req, res);
+    defer self.fullpage_end(req, res);
+
+    try action(self, req, res);
+}
+
 pub fn index(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     _ = self; // autofix
-    const tmpl = @embedFile("html/layouts/index.html");
     const w = res.writer();
 
     try zts.writeHeader(tmpl, w);
@@ -87,4 +119,63 @@ pub fn index(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     } else {
         try zts.write(tmpl, "not_logged_in", w);
     }
+
+    try zts.write(tmpl, "links", w);
+    try zts.write(tmpl, "content", w);
+    try zts.write(tmpl, "end_content", w);
+}
+
+fn fullpage(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
+    _ = self; // autofix
+    if (req.headers.get("hx-request") == null) {
+        const w = res.writer();
+
+        try zts.writeHeader(tmpl, w);
+
+        // is logged in or not ?
+        if (req.header("bearer") != null) {
+            try zts.write(tmpl, "logged_in", w);
+        } else {
+            try zts.write(tmpl, "not_logged_in", w);
+        }
+        try zts.write(tmpl, "links", w);
+        try zts.write(tmpl, "content", w);
+    }
+}
+
+fn fullpage_end(_: *Self, req: *httpz.Request, res: *httpz.Response) void {
+    if (req.headers.get("hx-request") == null) {
+        const w = res.writer();
+
+        zts.write(tmpl, "end_content", w) catch {};
+    }
+}
+
+pub fn public(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
+    _ = self; // autofix
+    _ = req; // autofix
+    const w = res.writer();
+    try w.writeAll("Public Content");
+}
+
+pub fn protected(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
+    const token = req.header("bearer") orelse {
+        self.login(req, res);
+        return;
+    };
+    const w = res.writer();
+    try w.print("Protected Content {s}", .{token});
+}
+
+pub fn login(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
+    _ = req; // autofix
+    const w = res.writer();
+    _ = w; // autofix
+    try zts.print(tmpl, "login", .{
+        .auth_url = self.auth_url,
+        .client_id = self.client_id,
+        .redirect_uri = self.redirect_uri,
+        .scope = self.scope,
+        .state = "ABC123",
+    });
 }

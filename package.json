@@ -1,0 +1,17 @@
+{
+    "name": "oauth.zig",
+    "version": "0.1.0",
+    "dependencies": {
+        "update-browserslist-db": "latest"
+    },
+    "devDependencies": {
+        "@tailwindcss/typography": "^0.5.13",
+        "daisyui": "^4.12.10",
+        "tailwindcss": "^3.4.4"
+    },
+    "scripts": {
+        "tailwind": "tailwindcss -i ./src/css/app.css -o ./www/style.css --watch",
+        "make": "tailwindcss -i ./src/css/app.css -o ./www/style.css && zig build -freference-trace",
+        "backend": "find src -name '*.zig' -o -name '*.html' | entr -r zig build -freference-trace run"
+    }
+}

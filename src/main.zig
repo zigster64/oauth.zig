@@ -31,7 +31,7 @@ pub fn main() !void {
     defer app.deinit();
 
     // everything is setup - run us up a webserver then !
-    const port = 8081;
+    const port = 8080;
 
     var server = try httpz.ServerApp(*App).init(allocator, .{
         .address = "0.0.0.0",
@@ -43,6 +43,6 @@ pub fn main() !void {
     server.errorHandler(App.errorHandler);
     app.routes(router);
     logz.info().boolean("server_startup", true).int("port", port).log();
-    std.debug.print("http://localhost:8081\n", .{});
+    std.debug.print("http://localhost:8080\n", .{});
     return server.listen();
 }
