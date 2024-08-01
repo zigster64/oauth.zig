@@ -1,0 +1,37 @@
+.{
+    .name = "oauth.zig",
+
+    .version = "0.0.0",
+
+    .minimum_zig_version = "0.14.0",
+
+    .dependencies = .{
+      .httpz = .{
+        .url = "git+https://github.com/karlseguin/http.zig#master",
+        .hash = "122000d1c2e1149553489cb81a31156c07067b1e2dbae939e20f5c9d533dccee78cd",
+      },
+      .pg = .{
+        .url = "git+https://github.com/karlseguin/pg.zig#master",
+        .hash = "1220bd73cc6127dad105d12637dbbf0229515c8ec23199c9c8d9caa43cef2d91a8af",
+
+      },
+      .logz = .{
+        .url = "git+https://github.com/karlseguin/log.zig#master",
+        .hash = "1220bb5aa04fd0dbc0360ec29e35ede63ae05163f9942f897263bcc9e2ad45822bd5",
+      },
+      .zul = .{
+        .url = "git+https://github.com/karlseguin/zul#master",
+        .hash = "122048b2e51cbee9e41b947386f492fb6e967cd00124e04e27519d282a9c4ba8d483",
+      },
+      .zts = .{
+        .url = "git+https://github.com/zigster64/zts#main",
+        .hash = "122097f35c2d1aa158464a2c6e30f76ca09f747596881cba3f86627195135dcbe70e",
+      },
+    },
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
