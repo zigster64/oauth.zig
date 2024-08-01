@@ -12,21 +12,20 @@ const Self = @This();
 const tmpl = @embedFile("html/layouts/index.html");
 
 //------------------------------------------------------------------------------
-// vars
-var auth_url: []u8 = undefined;
-var client_id: []u8 = undefined;
-var client_secret: []u8 = undefined;
-var redirect_uri: []u8 = undefined;
-var scope: []u8 = undefined;
-
+// app struct values
+auth_url: ?[:0]const u8 = null,
+client_id: ?[:0]const u8 = null,
+client_secret: ?[:0]const u8 = null,
+redirect_uri: ?[:0]const u8 = null,
+scope: ?[:0]const u8 = null,
 allocator: Allocator = undefined,
 
 pub fn init(allocator: Allocator) !Self {
-    const maybe_auth_url = std.posix.getenv("AUTH_URL").?;
-    const maybe_client_id = std.posix.getenv("CLIENT_ID").?;
-    const maybe_client_secret = std.posix.getenv("CLIENT_SECRET").?;
-    const maybe_redirect_uri = std.posix.getenv("REDIRECT_URI").?;
-    const maybe_scope = std.posix.getenv("SCOPE").?;
+    const maybe_auth_url = std.posix.getenv("AUTH_URL");
+    const maybe_client_id = std.posix.getenv("CLIENT_ID");
+    const maybe_client_secret = std.posix.getenv("CLIENT_SECRET");
+    const maybe_redirect_uri = std.posix.getenv("REDIRECT_URI");
+    const maybe_scope = std.posix.getenv("SCOPE");
 
     return .{
         .allocator = allocator,
@@ -139,7 +138,6 @@ fn fullpage(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
             try zts.write(tmpl, "not_logged_in", w);
         }
         try zts.write(tmpl, "links", w);
-        try zts.write(tmpl, "content", w);
     }
 }
 
@@ -160,7 +158,7 @@ pub fn public(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
 
 pub fn protected(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     const token = req.header("bearer") orelse {
-        self.login(req, res);
+        try self.login(req, res);
         return;
     };
     const w = res.writer();
@@ -169,13 +167,11 @@ pub fn protected(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
 
 pub fn login(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     _ = req; // autofix
-    const w = res.writer();
-    _ = w; // autofix
     try zts.print(tmpl, "login", .{
-        .auth_url = self.auth_url,
-        .client_id = self.client_id,
-        .redirect_uri = self.redirect_uri,
-        .scope = self.scope,
+        .auth_url = self.auth_url.?,
+        .client_id = self.client_id.?,
+        .redirect_uri = self.redirect_uri.?,
+        .scope = self.scope.?,
         .state = "ABC123",
-    });
+    }, res.writer());
 }

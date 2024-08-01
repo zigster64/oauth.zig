@@ -1,0 +1,52 @@
+/* Version 0.0.1 */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+@layer utilities {
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
+     /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+    }
+  }
+
+@layer components {
+  body {
+      font-family: "Poppins", sans-serif;
+  }
+
+h1 { font-size: 4rem; }
+h2 { font-size: 3rem; }
+h3 { font-size: 2rem; }
+a { @apply pl-4; font-style: italic; }
+
+.content-box {
+        @apply m-4 p-4 border-2 border-gray-300;
+    }
+
+}
+
+
+
+
+@tailwind utilities;
+
+/****************************************
+    Scrollbar (all but iOS and firefox web)
+*/
+::-webkit-scrollbar {
+  background-color: transparent;
+}

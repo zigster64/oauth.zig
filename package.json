@@ -12,6 +12,6 @@
     "scripts": {
         "tailwind": "tailwindcss -i ./src/css/app.css -o ./www/style.css --watch",
         "make": "tailwindcss -i ./src/css/app.css -o ./www/style.css && zig build -freference-trace",
-        "backend": "find src -name '*.zig' -o -name '*.html' | entr -r zig build -freference-trace run"
+        "backend": "source .env && find src -name '*.zig' -o -name '*.html' | entr -r zig build -freference-trace run"
     }
 }

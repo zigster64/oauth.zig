@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="corporate">
+<html lang="en" data-theme="dark">
 
 <head>
     <meta charset="utf-8" />
@@ -31,7 +31,7 @@
             </ul>
         </div>
 
-        <div id="content">
+        <div id="content" class="content-box">
             .content
             Content Goes in here
             .end_content
@@ -42,6 +42,6 @@
 .login
 <h2>You need to be logged in to see this</h2>
 <a
-    href="[{auth_url}s]?response_type=code?client_id=[{client_id}s]?redirect_uri=[[redirect_uri]s]?scope=[{scope}s]?state=[{state}s]">
+    href="{[auth_url]s}?response_type=code&client_id={[client_id]s}&redirect_uri={[redirect_uri]s}&scope={[scope]s}&state={[state]s}">
     Click Here to Login
 </a>
