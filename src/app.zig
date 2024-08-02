@@ -1,5 +1,6 @@
 const std = @import("std");
 const httpz = @import("httpz");
+const zul = @import("zul");
 const logz = @import("logz");
 const pg = @import("pg");
 const zts = @import("zts");
@@ -13,15 +14,17 @@ const tmpl = @embedFile("html/layouts/index.html");
 
 //------------------------------------------------------------------------------
 // app struct values
-auth_url: ?[:0]const u8 = null,
-client_id: ?[:0]const u8 = null,
-client_secret: ?[:0]const u8 = null,
-redirect_uri: ?[:0]const u8 = null,
-scope: ?[:0]const u8 = null,
+auth_url: [:0]const u8 = undefined,
+token_url: [:0]const u8 = undefined,
+client_id: [:0]const u8 = undefined,
+client_secret: [:0]const u8 = undefined,
+redirect_uri: [:0]const u8 = undefined,
+scope: [:0]const u8 = undefined,
 allocator: Allocator = undefined,
 
 pub fn init(allocator: Allocator) !Self {
     const maybe_auth_url = std.posix.getenv("AUTH_URL");
+    const maybe_token_url = std.posix.getenv("TOKEN_URL");
     const maybe_client_id = std.posix.getenv("CLIENT_ID");
     const maybe_client_secret = std.posix.getenv("CLIENT_SECRET");
     const maybe_redirect_uri = std.posix.getenv("REDIRECT_URI");
@@ -29,11 +32,12 @@ pub fn init(allocator: Allocator) !Self {
 
     return .{
         .allocator = allocator,
-        .auth_url = maybe_auth_url,
-        .client_id = maybe_client_id,
-        .client_secret = maybe_client_secret,
-        .redirect_uri = maybe_redirect_uri,
-        .scope = maybe_scope,
+        .auth_url = maybe_auth_url.?,
+        .token_url = maybe_token_url.?,
+        .client_id = maybe_client_id.?,
+        .client_secret = maybe_client_secret.?,
+        .redirect_uri = maybe_redirect_uri.?,
+        .scope = maybe_scope.?,
     };
 }
 
@@ -90,6 +94,7 @@ pub fn routes(self: *Self, router: anytype) void {
     const htmx = .{ .dispatcher = Self.pageDispatcher };
 
     router.get("/", Self.index);
+    router.get("/zauth", Self.zauth);
     router.getC("/public", Self.public, htmx);
     router.getC("/protected", Self.protected, htmx);
 
@@ -168,10 +173,76 @@ pub fn protected(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
 pub fn login(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     _ = req; // autofix
     try zts.print(tmpl, "login", .{
-        .auth_url = self.auth_url.?,
-        .client_id = self.client_id.?,
-        .redirect_uri = self.redirect_uri.?,
-        .scope = self.scope.?,
+        .auth_url = self.auth_url,
+        .client_id = self.client_id,
+        .redirect_uri = self.redirect_uri,
+        .scope = self.scope,
         .state = "ABC123",
     }, res.writer());
+}
+
+pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
+    const query = try req.query();
+
+    const maybe_code = query.get("code");
+    const maybe_state = query.get("state");
+
+    if (maybe_code == null or maybe_state == null) {
+        res.status = 403;
+        try res.writer().writeAll("Invalid Request");
+        return error.InvalidRequest;
+    }
+
+    const code = maybe_code.?;
+    const state = maybe_state.?;
+
+    if (!std.mem.eql(u8, state, "ABC123")) {
+        res.status = 403;
+        try res.writer().writeAll("Incorrect State ?");
+        return error.IncorrectState;
+    }
+
+    std.debug.print("Got back code {s} and state {s}\n", .{ code, state });
+
+    // looks ok, so exchange the auth code for a token with the MS auth service
+    var client = zul.http.Client.init(res.arena);
+    defer client.deinit();
+
+    var token_req = try client.request(self.token_url);
+    defer token_req.deinit();
+
+    try token_req.formBody("grant_type", "authorization_code");
+    try token_req.formBody("client_id", self.client_id);
+    try token_req.formBody("client_secret", self.client_secret);
+    try token_req.formBody("code", code);
+    try token_req.formBody("redirect_uri", self.redirect_uri);
+    try token_req.formBody("state", state);
+    token_req.method = .POST;
+
+    // std.debug.print("getting token response now\n", .{});
+    var token_res = try token_req.getResponse(.{});
+    // const sb = try token_res.allocBody(res.arena, .{});
+    // defer sb.deinit();
+    // std.debug.print("got body {s}\n", .{sb.string()});
+
+    if (token_res.status != 200) {
+        std.debug.print("token res code {}\n", .{token_res.status});
+        res.status = 403;
+        try res.writer().writeAll("Token Failed");
+        return error.TokenFailed;
+    }
+
+    const TokenResponse = struct {
+        token_type: []const u8,
+        access_token: []const u8,
+        expires_in: u64,
+        ext_expires_in: u64,
+        scope: []const u8,
+    };
+    var managed = try token_res.json(TokenResponse, res.arena, .{});
+    defer managed.deinit();
+
+    std.debug.print("Got access token {s}\nfor scope {s}\nExpires in {}\n", .{ managed.value.access_token, managed.value.scope, managed.value.expires_in });
+
+    // TODO - set the bearer token
 }

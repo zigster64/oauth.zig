@@ -2,3 +2,4 @@
 zig-out
 .env
 node_modules
+*.json
