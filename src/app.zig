@@ -92,11 +92,12 @@ pub fn fileServer(self: *Self, req: *httpz.Request, res: *httpz.Response) !void 
 pub fn routes(self: *Self, router: anytype) void {
     _ = self;
     const htmx = .{ .dispatcher = Self.pageDispatcher };
+    const htmxProtected = .{ .dispatcher = Self.pageDispatcherProtected };
 
     router.get("/", Self.index);
     router.get("/zauth", Self.zauth);
     router.getC("/public", Self.public, htmx);
-    router.getC("/protected", Self.protected, htmx);
+    router.getC("/protected", Self.protected, htmxProtected);
 
     // router.get("/login", Auth.loginHandler);
 }
@@ -107,6 +108,23 @@ fn pageDispatcher(self: *Self, action: httpz.Action(*Self), req: *httpz.Request,
 
     try self.fullpage(req, res);
     defer self.fullpage_end(req, res);
+
+    try action(self, req, res);
+}
+
+fn pageDispatcherProtected(self: *Self, action: httpz.Action(*Self), req: *httpz.Request, res: *httpz.Response) !void {
+    const t1 = std.time.microTimestamp();
+    _ = t1; // autofix
+
+    try self.fullpage(req, res);
+    defer self.fullpage_end(req, res);
+
+    const token = req.header("bearer") orelse {
+        // user is not logged in, so redirect to login page
+        try self.login(req, res);
+        return;
+    };
+    _ = token; // autofix
 
     try action(self, req, res);
 }
@@ -162,12 +180,18 @@ pub fn public(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
 }
 
 pub fn protected(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
-    const token = req.header("bearer") orelse {
-        try self.login(req, res);
-        return;
-    };
+    _ = req; // autofix
+    _ = self; // autofix
     const w = res.writer();
-    try w.print("Protected Content {s}", .{token});
+
+    // middleware will redirect us to login page if they are not logged in
+    // const token = req.header("bearer") orelse {
+    //     res.status = 403;
+    //     try w.writeAll("Not logged in");
+    //     return;
+    // };
+    // try w.print("Your token is {s}", .{token});
+    try w.print("Some {s} content here", .{"secret"});
 }
 
 pub fn login(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
@@ -244,5 +268,10 @@ pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
 
     std.debug.print("Got access token {s}\nfor scope {s}\nExpires in {}\n", .{ managed.value.access_token, managed.value.scope, managed.value.expires_in });
 
-    // TODO - set the bearer token
+    // TODO - set the bearer token back to the browser that sent this request
+    res.status = 200;
+    res.header("Set-Cookie", "bearer=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvbGkgRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c; Path=/; HttpOnly; Secure");
+    // res.header("Location", "/protected"); // TODO - replay the actual URL from the original request
+    //
+    return self.protected(req, res);
 }

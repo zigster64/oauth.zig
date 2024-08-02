@@ -26,6 +26,7 @@
         <div>
             <h2>Here are some links</h2>
             <ul>
+                <li><a href="/">Home</a></li>
                 <li><a href="/public" hx-boost="true" hx-target="#content">Public Data</a></li>
                 <li><a href="/protected" hx-boost="true" hx-target="#content">Protected Data</a></li>
             </ul>
@@ -41,7 +42,7 @@
 
 .login
 <h2>You need to be logged in to see this</h2>
-<a
-    href="{[auth_url]s}?response_type=code&client_id={[client_id]s}&redirect_uri={[redirect_uri]s}&scope={[scope]s}&state={[state]s}">
+<a href="{[auth_url]s}?response_type=code&client_id={[client_id]s}&redirect_uri={[redirect_uri]s}&scope={[scope]s}&state={[state]s}"
+    hx-boost="true" hx-target="#content">
     Click Here to Login
 </a>
