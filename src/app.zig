@@ -124,7 +124,7 @@ fn pageDispatcherProtected(self: *Self, action: httpz.Action(*Self), req: *httpz
         try self.login(req, res);
         return;
     };
-    std.debug.print("cookie is {s}\n", .{cookie});
+    // std.debug.print("cookie is {s}\n", .{cookie});
     if (!std.mem.eql(u8, cookie[0..7], "bearer=")) {
         try self.login(req, res);
         return;
@@ -264,11 +264,12 @@ pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     try token_req.formBody("state", state);
     token_req.method = .POST;
 
-    // std.debug.print("getting token response now\n", .{});
     var token_res = try token_req.getResponse(.{});
-    // const sb = try token_res.allocBody(res.arena, .{});
-    // defer sb.deinit();
-    // std.debug.print("got body {s}\n", .{sb.string()});
+    if (false) {
+        const body = try token_res.allocBody(res.arena, .{});
+        defer body.deinit();
+        std.debug.print("got body {s}\n", .{body.string()});
+    }
 
     if (token_res.status != 200) {
         std.debug.print("token res code {}\n", .{token_res.status});
@@ -280,6 +281,8 @@ pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     const TokenResponse = struct {
         token_type: []const u8,
         access_token: []const u8,
+        refresh_token: []const u8,
+        id_token: []const u8,
         expires_in: u64,
         ext_expires_in: u64,
         scope: []const u8,
@@ -296,6 +299,8 @@ pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     try sb.write("; HttpOnly; Path=/; Max-Age=3600");
     res.header("Set-Cookie", sb.string());
     res.header("Location", "/protected");
+
+    std.debug.print("Logged in, with refresh token and id token\n{s}\n", .{managed.value.refresh_token});
 
     // const cookie = sb.string();
     // std.debug.print("Set cookie on zauth response to {s} len {d}\n", .{ cookie, cookie.len });
