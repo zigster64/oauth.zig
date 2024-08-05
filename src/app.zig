@@ -119,13 +119,16 @@ fn pageDispatcherProtected(self: *Self, action: httpz.Action(*Self), req: *httpz
     try self.fullpage(req, res);
     defer self.fullpage_end(req, res);
 
-    const token = req.header("bearer") orelse {
+    const cookie = req.header("cookie") orelse {
         // user is not logged in, so redirect to login page
         try self.login(req, res);
         return;
     };
-    _ = token; // autofix
-
+    std.debug.print("cookie is {s}\n", .{cookie});
+    if (!std.mem.eql(u8, cookie[0..7], "bearer=")) {
+        try self.login(req, res);
+        return;
+    }
     try action(self, req, res);
 }
 
@@ -226,8 +229,6 @@ pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
         return error.IncorrectState;
     }
 
-    std.debug.print("Got back code {s} and state {s}\n", .{ code, state });
-
     // looks ok, so exchange the auth code for a token with the MS auth service
     var client = zul.http.Client.init(res.arena);
     defer client.deinit();
@@ -266,12 +267,19 @@ pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     var managed = try token_res.json(TokenResponse, res.arena, .{});
     defer managed.deinit();
 
-    std.debug.print("Got access token {s}\nfor scope {s}\nExpires in {}\n", .{ managed.value.access_token, managed.value.scope, managed.value.expires_in });
-
-    // TODO - set the bearer token back to the browser that sent this request
     res.status = 200;
-    res.header("Set-Cookie", "bearer=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvbGkgRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c; Path=/; HttpOnly; Secure");
-    // res.header("Location", "/protected"); // TODO - replay the actual URL from the original request
-    //
-    return self.protected(req, res);
+    var sb = zul.StringBuilder.init(res.arena);
+    // defer sb.deinit();
+    try sb.write("bearer=");
+    try sb.write(managed.value.access_token);
+    // try sb.write("; HttpOnly; Secure; Path=/; Max-Age=3600");
+    try sb.write("; HttpOnly; Path=/; Max-Age=3600");
+    res.header("Set-Cookie", sb.string());
+
+    // const cookie = sb.string();
+    // std.debug.print("Set cookie on zauth response to {s} len {d}\n", .{ cookie, cookie.len });
+
+    const redir = @embedFile("html/redirect.html");
+    const w = res.writer();
+    try zts.printHeader(redir, .{"/protected"}, w);
 }
