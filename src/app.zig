@@ -199,6 +199,26 @@ pub fn protected(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
 
 pub fn login(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     _ = req; // autofix
+    // res.status = 302;
+
+    // var sb = zul.StringBuilder.init(res.arena);
+    // try sb.write(self.auth_url);
+
+    // try sb.write("?response_type=code&client_id=");
+    // try sb.write(self.client_id);
+
+    // try sb.write("&redirect_uri=");
+    // try sb.write(self.redirect_uri);
+
+    // try sb.write("&scope=");
+    // try sb.write(self.scope);
+
+    // try sb.write("&state=ABC123");
+
+    // res.header("Location", sb.string());
+
+    // std.debug.print("doing a redirect to {s}\n", .{sb.string()});
+
     try zts.print(tmpl, "login", .{
         .auth_url = self.auth_url,
         .client_id = self.client_id,
@@ -267,7 +287,7 @@ pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     var managed = try token_res.json(TokenResponse, res.arena, .{});
     defer managed.deinit();
 
-    res.status = 200;
+    res.status = 302;
     var sb = zul.StringBuilder.init(res.arena);
     // defer sb.deinit();
     try sb.write("bearer=");
@@ -275,11 +295,12 @@ pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     // try sb.write("; HttpOnly; Secure; Path=/; Max-Age=3600");
     try sb.write("; HttpOnly; Path=/; Max-Age=3600");
     res.header("Set-Cookie", sb.string());
+    res.header("Location", "/protected");
 
     // const cookie = sb.string();
     // std.debug.print("Set cookie on zauth response to {s} len {d}\n", .{ cookie, cookie.len });
 
-    const redir = @embedFile("html/redirect.html");
-    const w = res.writer();
-    try zts.printHeader(redir, .{"/protected"}, w);
+    // const redir = @embedFile("html/redirect.html");
+    // const w = res.writer();
+    // try zts.printHeader(redir, .{"/protected"}, w);
 }
