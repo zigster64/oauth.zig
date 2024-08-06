@@ -8,13 +8,12 @@
     .dependencies = .{
       .httpz = .{
         .url = "git+https://github.com/karlseguin/http.zig#master",
-        .hash = "12201ddb1be53d54f0947f0ab1d0cca9bdc8060d22973f466dbca6eb95cd9baa7771",
+        .hash = "1220e33aaf4a341b47190a7d285a17b744764a8a32679c4eb716b546e3bea07a2a4c",
         // .path = "../http.zig",
       },
       .pg = .{
         .url = "git+https://github.com/karlseguin/pg.zig#master",
-        .hash = "1220bd73cc6127dad105d12637dbbf0229515c8ec23199c9c8d9caa43cef2d91a8af",
-
+        .hash = "1220b8df9b140878b5c2145f091916392c9f4400354cc828d235a640070c045d174c",
       },
       .logz = .{
         .url = "git+https://github.com/karlseguin/log.zig#master",
