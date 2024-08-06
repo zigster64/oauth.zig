@@ -7,9 +7,9 @@
 
     .dependencies = .{
       .httpz = .{
-        // .url = "git+https://github.com/karlseguin/http.zig#master",
-        // .hash = "220ca362430add492bea6147f4291c244bd11c85402810bfeb9a03b670db81447d9",
-        .path = "../http.zig",
+        .url = "git+https://github.com/karlseguin/http.zig#master",
+        .hash = "12201ddb1be53d54f0947f0ab1d0cca9bdc8060d22973f466dbca6eb95cd9baa7771",
+        // .path = "../http.zig",
       },
       .pg = .{
         .url = "git+https://github.com/karlseguin/pg.zig#master",

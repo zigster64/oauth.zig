@@ -188,37 +188,11 @@ pub fn protected(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     const w = res.writer();
 
     // middleware will redirect us to login page if they are not logged in
-    // const token = req.header("bearer") orelse {
-    //     res.status = 403;
-    //     try w.writeAll("Not logged in");
-    //     return;
-    // };
-    // try w.print("Your token is {s}", .{token});
     try w.print("Some {s} content here", .{"secret"});
 }
 
 pub fn login(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     _ = req; // autofix
-    // res.status = 302;
-
-    // var sb = zul.StringBuilder.init(res.arena);
-    // try sb.write(self.auth_url);
-
-    // try sb.write("?response_type=code&client_id=");
-    // try sb.write(self.client_id);
-
-    // try sb.write("&redirect_uri=");
-    // try sb.write(self.redirect_uri);
-
-    // try sb.write("&scope=");
-    // try sb.write(self.scope);
-
-    // try sb.write("&state=ABC123");
-
-    // res.header("Location", sb.string());
-
-    // std.debug.print("doing a redirect to {s}\n", .{sb.string()});
-
     try zts.print(tmpl, "login", .{
         .auth_url = self.auth_url,
         .client_id = self.client_id,
