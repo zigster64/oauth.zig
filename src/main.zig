@@ -33,14 +33,11 @@ pub fn main() !void {
     // everything is setup - run us up a webserver then !
     const port = 8080;
 
-    var server = try httpz.ServerApp(*App).init(allocator, .{
+    var server = try httpz.Server(*App).init(allocator, .{
         .address = "0.0.0.0",
         .port = port,
     }, &app);
     const router = server.router();
-    server.notFound(App.fileServer);
-    server.dispatcher(App.logger);
-    server.errorHandler(App.errorHandler);
     app.routes(router);
     logz.info().boolean("server_startup", true).int("port", port).log();
     std.debug.print("http://localhost:8080\n", .{});

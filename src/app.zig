@@ -45,7 +45,7 @@ pub fn deinit(self: Self) void {
     _ = self; // autofix
 }
 
-pub fn logger(self: *Self, action: httpz.Action(*Self), req: *httpz.Request, res: *httpz.Response) !void {
+pub fn dispatch(self: *Self, action: httpz.Action(*Self), req: *httpz.Request, res: *httpz.Response) !void {
     const t1 = std.time.microTimestamp();
 
     try action(self, req, res);
@@ -58,7 +58,7 @@ pub fn logger(self: *Self, action: httpz.Action(*Self), req: *httpz.Request, res
         .log();
 }
 
-pub fn errorHandler(self: *Self, req: *httpz.Request, res: *httpz.Response, err: anyerror) void {
+pub fn uncaughtError(self: *Self, req: *httpz.Request, res: *httpz.Response, err: anyerror) void {
     _ = self;
     if (res.status == 0) {
         res.status = 500;
@@ -74,7 +74,7 @@ pub fn errorHandler(self: *Self, req: *httpz.Request, res: *httpz.Response, err:
         .log();
 }
 
-pub fn fileServer(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
+pub fn notFound(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     _ = self;
     errdefer {
         res.status = 404;
