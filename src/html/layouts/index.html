@@ -17,7 +17,9 @@
         <h1>Auth Test Application</h1>
 
         .logged_in
-        You are logged in
+        You are logged in as {[first_name]s}
+        <br>
+
 
         .not_logged_in
         You are not logged in
@@ -42,9 +44,8 @@
 
 .login
 <h2>You need to be logged in to see this</h2>
+
 <a href="{[auth_url]s}?response_type=code&client_id={[client_id]s}&redirect_uri={[redirect_uri]s}&scope={[scope]s}&state={[state]s}"
     hx-boost="true" hx-target="#content">
-    Click Here to Login
+    <button class="btn btn-accent"> Login to access {[path]s} </button>
 </a>
-<br>
-url {[path]s}
