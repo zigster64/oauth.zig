@@ -30,6 +30,9 @@ pub fn build(b: *std.Build) void {
     const zts = b.dependency("zts", dep_opts);
     exe.root_module.addImport("zts", zts.module("zts"));
 
+    const jwt = b.dependency("jwt", dep_opts);
+    exe.root_module.addImport("jwt", jwt.module("jwt"));
+
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);

@@ -6,27 +6,33 @@
     .minimum_zig_version = "0.14.0",
 
     .dependencies = .{
-      .httpz = .{
-        .url = "git+https://github.com/karlseguin/http.zig#master",
-        .hash = "12205f1a9a3f15f0447fffff986ce0f630c7734fa60b924a18f2d86cdd93d0a78d32",
-        // .path = "../http.zig",
-      },
-      .pg = .{
-        .url = "git+https://github.com/karlseguin/pg.zig#master",
-        .hash = "1220b8df9b140878b5c2145f091916392c9f4400354cc828d235a640070c045d174c",
-      },
-      .logz = .{
-        .url = "git+https://github.com/karlseguin/log.zig#master",
-        .hash = "1220bb5aa04fd0dbc0360ec29e35ede63ae05163f9942f897263bcc9e2ad45822bd5",
-      },
-      .zul = .{
-        .url = "git+https://github.com/karlseguin/zul#master",
-        .hash = "1220457e2c8867f6734520d9b335f01e1d851d6fe7adaa7f6f0756158acaf6c5e87f",
-      },
-      .zts = .{
-        .url = "git+https://github.com/zigster64/zts#main",
-        .hash = "122097f35c2d1aa158464a2c6e30f76ca09f747596881cba3f86627195135dcbe70e",
-      },
+        .httpz = .{
+            .url = "git+https://github.com/karlseguin/http.zig#master",
+            .hash = "12205f1a9a3f15f0447fffff986ce0f630c7734fa60b924a18f2d86cdd93d0a78d32",
+            // .path = "../http.zig",
+        },
+        .pg = .{
+            .url = "git+https://github.com/karlseguin/pg.zig#master",
+            .hash = "1220b8df9b140878b5c2145f091916392c9f4400354cc828d235a640070c045d174c",
+        },
+        .logz = .{
+            .url = "git+https://github.com/karlseguin/log.zig#master",
+            .hash = "1220bb5aa04fd0dbc0360ec29e35ede63ae05163f9942f897263bcc9e2ad45822bd5",
+        },
+        .zul = .{
+            .url = "git+https://github.com/karlseguin/zul#master",
+            .hash = "1220457e2c8867f6734520d9b335f01e1d851d6fe7adaa7f6f0756158acaf6c5e87f",
+        },
+        .zts = .{
+            .url = "git+https://github.com/zigster64/zts#main",
+            .hash = "122097f35c2d1aa158464a2c6e30f76ca09f747596881cba3f86627195135dcbe70e",
+        },
+        .jwt = .{
+            .url = "git+https://github.com/zigster64/zig-jwt#decode-unverified",
+            .hash = "12202f5862ba02484d23f1e80f354cd421b4e8f0dbeff04af2872da4db8762b870d1",
+            // .url = "git+https://github.com/softprops/zig-jwt#main",
+            // .hash = "12205af5eb23e009c085ada2970ae2545e4058b8ff5ac5eeac1519a988df95beca4f",
+        },
     },
 
     .paths = .{
