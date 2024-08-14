@@ -17,10 +17,10 @@ const tmpl = @embedFile("html/layouts/index.html");
 //------------------------------------------------------------------------------
 // Session structs
 
-const Session = struct {
+pub const Session = struct {
     id: UUID = undefined, // unique ID per session
     url: []const u8 = undefined, // raw url of the request that created the session
-    address: std.net.Address, // address of the client that created the session
+    address: std.net.Address = undefined, // address of the client that created the session
     exp: i64 = 0, // expires
     first_name: ?[]const u8 = null,
     name: ?[]const u8 = null,
@@ -34,7 +34,7 @@ const Session = struct {
     }
 };
 
-const SessionCtx = struct {
+pub const SessionCtx = struct {
     session: Session,
     app: *Self,
 };
@@ -91,10 +91,14 @@ pub fn deinit(self: Self) void {
     }
 }
 
-pub fn dispatch(self: *Self, action: httpz.Action(*Self), req: *httpz.Request, res: *httpz.Response) !void {
+pub fn dispatch(self: *Self, action: httpz.Action(*SessionCtx), req: *httpz.Request, res: *httpz.Response) !void {
     const t1 = std.time.microTimestamp();
 
-    try action(self, req, res);
+    var ctx = SessionCtx{
+        .session = Session{},
+        .app = self,
+    };
+    try action(&ctx, req, res);
     const t2 = std.time.microTimestamp();
     logz.info()
         .string("protocol", @tagName(req.protocol))
@@ -140,37 +144,32 @@ pub fn routes(self: *Self, router: anytype) void {
     const htmx = .{ .dispatcher = Self.pageDispatcher };
     const htmxProtected = .{ .dispatcher = Self.pageDispatcherProtected };
 
-    router.get("/", Self.index);
-    router.get("/zauth", Self.zauth);
-    router.getC("/public", Self.public, htmx);
-    router.getC("/protected", Self.protected, htmxProtected);
-
+    router.get("/", index);
+    router.get("/zauth", zauth);
+    router.getC("/public", public, htmx);
+    router.getC("/protected", protected, htmxProtected);
     // router.get("/login", Auth.loginHandler);
 }
 
-fn pageDispatcher(self: *Self, action: httpz.Action(*Self), req: *httpz.Request, res: *httpz.Response) !void {
-    const t1 = std.time.microTimestamp();
-    _ = t1; // autofix
+fn pageDispatcher(ctx: *SessionCtx, action: httpz.Action(*SessionCtx), req: *httpz.Request, res: *httpz.Response) !void {
+    const app = ctx.app;
+    try app.fullpage(req, res);
+    defer app.fullpage_end(req, res);
 
-    try self.fullpage(req, res);
-    defer self.fullpage_end(req, res);
-
-    try action(self, req, res);
+    try action(ctx, req, res);
 }
 
-fn pageDispatcherProtected(self: *Self, action: httpz.Action(*SessionCtx), req: *httpz.Request, res: *httpz.Response) !void {
-    const t1 = std.time.microTimestamp();
-    _ = t1; // autofix
-
-    try self.fullpage(req, res);
-    defer self.fullpage_end(req, res);
+fn pageDispatcherProtected(ctx: *SessionCtx, action: httpz.Action(*SessionCtx), req: *httpz.Request, res: *httpz.Response) !void {
+    const app = ctx.app;
+    try app.fullpage(req, res);
+    defer app.fullpage_end(req, res);
 
     const cookie = req.header("cookie") orelse {
-        return self.login(req, res);
+        return app.login(req, res);
     };
 
     if (!std.mem.eql(u8, cookie[0..8], "session=")) {
-        return self.login(req, res);
+        return app.login(req, res);
     }
 
     const cookie_token = cookie[8..];
@@ -186,33 +185,33 @@ fn pageDispatcherProtected(self: *Self, action: httpz.Action(*SessionCtx), req: 
             url: []const u8,
         },
         cookie_token,
-        .{ .secret = self.jwt_secret },
+        .{ .secret = app.jwt_secret },
         .{},
     );
 
     // validate the token
     std.debug.print("session {s} for user {s}\n", .{ decoded.claims.session, decoded.claims.first_name });
     const claimed_session = try UUID.parse(decoded.claims.session);
-    self.mutex.lock();
-    defer self.mutex.unlock();
-    for (self.sessions.items) |session| {
+    app.mutex.lock();
+    defer app.mutex.unlock();
+    for (app.sessions.items) |session| {
         if (session.id.eql(claimed_session)) {
             std.debug.print("session found for user {any}\n", .{session.first_name});
-            var ctx = SessionCtx{
+            var new_ctx = SessionCtx{
                 .session = session,
-                .app = self,
+                .app = app,
             };
-            try action(&ctx, req, res);
+            try action(&new_ctx, req, res);
             return;
         }
     }
 
     std.debug.print("invalid session ?\n", .{});
-    return self.login(req, res);
+    return app.login(req, res);
 }
 
-pub fn index(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
-    _ = self; // autofix
+pub fn index(ctx: *SessionCtx, req: *httpz.Request, res: *httpz.Response) !void {
+    _ = ctx; // autofix
     const w = res.writer();
 
     try zts.writeHeader(tmpl, w);
@@ -254,8 +253,8 @@ fn fullpage_end(_: *Self, req: *httpz.Request, res: *httpz.Response) void {
     }
 }
 
-pub fn public(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
-    _ = self; // autofix
+pub fn public(ctx: *SessionCtx, req: *httpz.Request, res: *httpz.Response) !void {
+    _ = ctx; // autofix
     _ = req; // autofix
     const w = res.writer();
     try w.writeAll("Public Content");
@@ -318,7 +317,7 @@ pub fn login(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     }, res.writer());
 }
 
-pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
+pub fn zauth(ctx: *SessionCtx, req: *httpz.Request, res: *httpz.Response) !void {
     const query = try req.query();
 
     std.debug.print("Auth from IP {}\n", .{req.address});
@@ -336,19 +335,21 @@ pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     const session_id = try UUID.parse(state);
     var maybe_session: ?*Session = null;
 
-    self.cleanupPendingSessions();
-    self.mutex.lock();
-    defer self.mutex.unlock();
+    const app = ctx.app;
 
-    for (self.pending_sessions.items, 0..) |*pending_session, i| {
+    app.cleanupPendingSessions();
+    app.mutex.lock();
+    defer app.mutex.unlock();
+
+    for (app.pending_sessions.items, 0..) |*pending_session, i| {
         if (pending_session.id.eql(session_id)) {
 
             // remove the session from the pending session array
-            _ = self.pending_sessions.swapRemove(i);
+            _ = app.pending_sessions.swapRemove(i);
 
             // bump the expiry time to now + 1 hour, and add it to the active session list
             pending_session.exp = std.time.timestamp() + 3600;
-            try self.sessions.append(pending_session.*);
+            try app.sessions.append(pending_session.*);
             maybe_session = pending_session;
             break;
         }
@@ -380,14 +381,14 @@ pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
     var client = zul.http.Client.init(res.arena);
     defer client.deinit();
 
-    var token_req = try client.request(self.token_url);
+    var token_req = try client.request(app.token_url);
     defer token_req.deinit();
 
     try token_req.formBody("grant_type", "authorization_code");
-    try token_req.formBody("client_id", self.client_id);
-    try token_req.formBody("client_secret", self.client_secret);
+    try token_req.formBody("client_id", app.client_id);
+    try token_req.formBody("client_secret", app.client_secret);
     try token_req.formBody("code", code);
-    try token_req.formBody("redirect_uri", self.redirect_uri);
+    try token_req.formBody("redirect_uri", app.redirect_uri);
     try token_req.formBody("state", state);
     token_req.method = .POST;
 
@@ -470,7 +471,7 @@ pub fn zauth(self: *Self, req: *httpz.Request, res: *httpz.Response) !void {
             .session = session.id.toHex(.lower),
             .url = session.url,
         },
-        .{ .secret = self.jwt_secret },
+        .{ .secret = app.jwt_secret },
     );
 
     // set a cookie with the session, and redirect to the URL they originally asked for before being auth blocked
