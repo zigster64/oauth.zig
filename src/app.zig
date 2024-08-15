@@ -200,6 +200,8 @@ fn getSession(self: *Self, req: *httpz.Request, res: *httpz.Response) ?Session {
                 }
             }
         }
+        // User has a cookie, but it doesnt match up with any known session at our end,
+        // so be strict and just delete invalid cookie off the browser. Ouch !
         res.header("Set-Cookie", "session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
     }
     return null;
@@ -399,8 +401,8 @@ pub fn zauth(ctx: *SessionCtx, req: *httpz.Request, res: *httpz.Response) !void 
                 // remove the session from the pending session array
                 _ = app.pending_sessions.swapRemove(i);
 
-                // bump the expiry time to now + 1 hour, and add it to the active session list
-                pending_session.exp = std.time.timestamp() + 3600;
+                // bump the expiry time to now + 30 seconds, and add it to the active session list
+                pending_session.exp = std.time.timestamp() + 30;
                 pending_session.logged_in = true;
                 try app.sessions.append(pending_session.*);
                 maybe_session = pending_session;
