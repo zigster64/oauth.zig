@@ -12,6 +12,7 @@
     "scripts": {
         "tailwind": "tailwindcss -i ./src/css/app.css -o ./www/style.css --watch",
         "make": "tailwindcss -i ./src/css/app.css -o ./www/style.css && zig build -freference-trace",
-        "backend": "source .env && find src -name '*.zig' -o -name '*.html' | entr -r zig build -freference-trace run"
+        "backend": "source .env && find src -name '*.zig' -o -name '*.html' | entr -r zig build -freference-trace run",
+        "fast": "source .env && find src -name '*.zig' -o -name '*.html' | entr -r zig build -Doptimize=ReleaseFast -freference-trace run"
     }
 }

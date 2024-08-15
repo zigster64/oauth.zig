@@ -56,7 +56,8 @@ pub fn htmxDispatch(self: *App, action: httpz.Action(*SessionCtx), req: *httpz.R
 
     if (ctx.session.logged_in) {
         l = l.string("session", &ctx.session.id.toHex(.lower))
-            .string("user", ctx.session.email);
+            .string("user", ctx.session.name)
+            .string("email", ctx.session.email);
     }
 
     l.int("duration_us", t2 - t1)
@@ -90,6 +91,7 @@ pub fn htmxProtectedDispatch(self: *App, action: httpz.Action(*SessionCtx), req:
     }
     l.string("session", &ctx.session.id.toHex(.lower))
         .string("user", ctx.session.name)
+        .string("email", ctx.session.email)
         .int("duration_us", t2 - t1)
         .log();
 }
