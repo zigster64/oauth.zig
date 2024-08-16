@@ -85,9 +85,9 @@ pub fn htmxProtectedDispatch(self: *App, action: httpz.Action(*SessionCtx), req:
         .string("url", req.url.raw);
 
     if (req.header("hx-request") != null) {
-        l = l.string("htmx ⛨", "hx-request");
+        l = l.string("htmx🛡️", "hx-request");
     } else {
-        l = l.string("htmx ⛨", "full page");
+        l = l.string("htmx🛡️", "full-page");
     }
     l.string("session", &ctx.session.id.toHex(.lower))
         .string("user", ctx.session.name)
